@@ -5,34 +5,48 @@ import ChimeKit
 import ProcessServiceClient
 
 public final class RustExtension {
-	private static let processHostService: String = "com.chimehq.ChimeKit.ProcessService"
-
 	let host: any HostProtocol
 	private let lspService: LSPService
 	private let logger: Logger
 
-	public init(host: any HostProtocol) {
+	public init(host: any HostProtocol, processHostServiceName: String?) {
 		self.host = host
-		self.logger = Logger(subsystem: "com.chimehq.ChimeRust", category: "RustExtension")
+		let logger = Logger(subsystem: "com.chimehq.ChimeRust", category: "RustExtension")
+		self.logger = logger
 
 		let filter = LSPService.contextFilter(for: [.rustSource], projectFiles: ["Cargo.toml"])
+		let paramProvider = { try await RustExtension.provideParams(logger: logger, processHostService: processHostServiceName) }
 
 		self.lspService = LSPService(host: host,
 									 contextFilter: filter,
-									 executionParamsProvider: RustExtension.provideParams,
-									 processHostServiceName: nil)
+									 executionParamsProvider: paramProvider,
+									 processHostServiceName: processHostServiceName)
 	}
 }
 
 extension RustExtension {
-	private static func provideParams() async throws -> Process.ExecutionParameters {
-		let userEnv = try await HostedProcess.userEnvironment(with: RustExtension.processHostService)
+	private static func provideParams(logger: Logger, processHostService: String?) async throws -> Process.ExecutionParameters {
+		let userEnv: [String: String]
+
+		if let processHostService = processHostService {
+			userEnv = try await HostedProcess.userEnvironment(with: processHostService)
+		} else {
+			userEnv = ProcessInfo.processInfo.userEnvironment
+		}
 
 		let whichParams = Process.ExecutionParameters(path: "/usr/bin/which", arguments: ["rust-analyzer"], environment: userEnv)
 
-		let whichProcess = HostedProcess(named: RustExtension.processHostService, parameters: whichParams)
+		let data: Data
 
-		let data = try await whichProcess.runAndReadStdout()
+		if let processHostService = processHostService {
+			let whichProcess = HostedProcess(named: processHostService, parameters: whichParams)
+
+			data = try await whichProcess.runAndReadStdout()
+		} else {
+			let whichProcess = Process(parameters: whichParams)
+
+			data = try whichProcess.runAndReadStdout() ?? Data()
+		}
 
 		guard let output = String(data: data, encoding: .utf8) else {
 			throw LSPServiceError.serverNotFound
