@@ -11,6 +11,8 @@ This Chime extension supports the [Rust][rust] programming language. It integrat
 
 chime-rust's core functionality is built directly into Chime 2.0.
 
+This extension requires that `rust-analyzer` be accessible in the user's `PATH`.
+
 ## Suggestions or Feedback
 
 We'd love to hear from you! Get in touch via [twitter](https://twitter.com/chimehq), an issue, or a pull request.
