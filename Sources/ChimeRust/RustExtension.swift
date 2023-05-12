@@ -6,10 +6,7 @@ public final class RustExtension {
 	private let lspService: LSPService
 
 	public init(host: any HostProtocol, processHostServiceName: String) {
-		let filter = LSPService.contextFilter(for: [.rustSource], projectFiles: ["Cargo.toml"])
-
 		self.lspService = LSPService(host: host,
-									 contextFilter: filter,
 									 executableName: "rust-analyzer",
 									 processHostServiceName: processHostServiceName,
 									 logMessages: true)
@@ -17,6 +14,13 @@ public final class RustExtension {
 }
 
 extension RustExtension: ExtensionProtocol {
+	public var configuration: ExtensionConfiguration {
+		get async throws {
+			return ExtensionConfiguration(documentFilter: [.uti(.rustSource)],
+										  directoryContentFilter: [.uti(.rustSource), .fileName("Cargo.toml")])
+		}
+	}
+
 	public func didOpenProject(with context: ProjectContext) async throws {
 		try await lspService.didOpenProject(with: context)
 	}
