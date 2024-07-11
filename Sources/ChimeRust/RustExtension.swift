@@ -7,8 +7,10 @@ public final class RustExtension {
 	private let lspService: LSPService
 
 	public init(host: any HostProtocol) {
-		self.lspService = LSPService(host: host,
-									 executableName: "rust-analyzer")
+		self.lspService = LSPService(
+			host: host,
+			executableName: "rust-analyzer"
+		)
 	}
 }
 
@@ -20,7 +22,7 @@ extension RustExtension: ExtensionProtocol {
 		}
 	}
 	
-	public var applicationService: ApplicationService {
-		return lspService
+	public var applicationService: some ApplicationService {
+		lspService
 	}
 }
